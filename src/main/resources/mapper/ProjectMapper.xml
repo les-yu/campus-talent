@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.campus.talent.mapper.ProjectMapper">
+
+    <!-- 查询所有项目 -->
+    <select id="findAll" resultType="Project">
+        SELECT id, name, description, tech_stack, start_date,
+               end_date, status, created_at
+        FROM project
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据ID查询 -->
+    <select id="findById" resultType="Project">
+        SELECT id, name, description, tech_stack, start_date,
+               end_date, status, created_at
+        FROM project
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询某成员参与的项目（供 MemberMapper 的 collection 调用） -->
+    <select id="findByMemberId" resultType="Project">
+        SELECT p.id, p.name, p.description, p.tech_stack,
+               p.start_date, p.end_date, p.status, p.created_at,
+               mp.role, mp.contribution
+        FROM project p
+                 JOIN member_project mp ON p.id = mp.project_id
+        WHERE mp.member_id = #{memberId}
+        ORDER BY p.start_date DESC
+    </select>
+
+    <!-- 新增项目 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO project (name, description, tech_stack, start_date, end_date, status, created_at)
+        VALUES (#{name}, #{description}, #{techStack}, #{startDate}, #{endDate}, 1, NOW())
+    </insert>
+
+    <!-- 更新项目 -->
+    <update id="update">
+        UPDATE project
+        <set>
+            <if test="name        != null">name        = #{name},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="techStack   != null">tech_stack  = #{techStack},</if>
+            <if test="startDate   != null">start_date  = #{startDate},</if>
+            <if test="endDate     != null">end_date    = #{endDate},</if>
+            <if test="status      != null">status      = #{status},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除项目 -->
+    <delete id="deleteById">
+        DELETE FROM project WHERE id = #{id}
+    </delete>
+
+</mapper>

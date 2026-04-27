@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.campus.talent.mapper.SkillMapper">
+
+    <!-- 查询所有分类 -->
+    <select id="findAllCategories" resultType="SkillCategory">
+        SELECT id, name, sort_order
+        FROM skill_category
+        ORDER BY sort_order DESC
+    </select>
+
+    <!-- 查询所有技能标签（含分类名） -->
+    <select id="findAllTags" resultType="SkillTag">
+        SELECT t.id, t.category_id, t.name, t.icon_url,
+               c.name AS category_name
+        FROM skill_tag t
+                 LEFT JOIN skill_category c ON t.category_id = c.id
+        ORDER BY c.sort_order DESC, t.id
+    </select>
+
+    <!-- 按分类查询技能 -->
+    <select id="findTagsByCategoryId" resultType="SkillTag">
+        SELECT id, category_id, name, icon_url
+        FROM skill_tag
+        WHERE category_id = #{categoryId}
+    </select>
+
+    <!-- 查询某成员的技能（供 MemberMapper 的 collection 调用） -->
+    <select id="findByMemberId" resultType="SkillTag">
+        SELECT t.id, t.category_id, t.name, t.icon_url,
+               ms.level, ms.years
+        FROM skill_tag t
+                 JOIN member_skill ms ON t.id = ms.skill_id
+        WHERE ms.member_id = #{memberId}
+        ORDER BY ms.level DESC
+    </select>
+
+</mapper>

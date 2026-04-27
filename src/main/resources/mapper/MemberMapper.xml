@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.campus.talent.mapper.MemberMapper">
+
+    <!-- 成员基础字段映射 -->
+    <resultMap id="MemberBaseMap" type="Member">
+        <id     property="id"        column="id"/>
+        <result property="name"      column="name"/>
+        <result property="gender"    column="gender"/>
+        <result property="email"     column="email"/>
+        <result property="phone"     column="phone"/>
+        <result property="school"    column="school"/>
+        <result property="major"     column="major"/>
+        <result property="grade"     column="grade"/>
+        <result property="bio"       column="bio"/>
+        <result property="avatarUrl" column="avatar_url"/>
+        <result property="status"    column="status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 成员完整映射（含技能和项目） -->
+    <resultMap id="MemberFullMap" type="Member" extends="MemberBaseMap">
+        <collection property="skills"   ofType="SkillTag"
+                    select="com.campus.talent.mapper.SkillMapper.findByMemberId"
+                    column="id"/>
+        <collection property="projects" ofType="Project"
+                    select="com.campus.talent.mapper.ProjectMapper.findByMemberId"
+                    column="id"/>
+    </resultMap>
+
+    <!-- 公共查询字段 -->
+    <sql id="BaseColumns">
+        id, name, gender, email, phone, school, major, grade,
+        bio, avatar_url, status, created_at, updated_at
+    </sql>
+
+    <!-- 查询所有成员 -->
+    <select id="findAll" resultMap="MemberFullMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM member
+        WHERE status = 1
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据ID查询 -->
+    <select id="findById" resultMap="MemberFullMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM member
+        WHERE id = #{id}
+    </select>
+
+    <!-- =============================================
+         核心：多条件动态组合查询
+         支持：姓名/学校/专业/年级/技能列表/项目
+         所有条件均可选，不传则不作为筛选条件
+         ============================================= -->
+    <select id="search" resultMap="MemberBaseMap">
+        SELECT DISTINCT m.id, m.name, m.gender, m.email, m.phone,
+        m.school, m.major, m.grade, m.bio,
+        m.avatar_url, m.status, m.created_at, m.updated_at
+        FROM member m
+        <if test="dto.skillIds != null and dto.skillIds.size() > 0">
+            JOIN member_skill ms ON m.id = ms.member_id
+        </if>
+        <if test="dto.projectId != null">
+            JOIN member_project mp ON m.id = mp.member_id
+        </if>
+        <where>
+            m.status = 1
+            <if test="dto.name != null and dto.name != ''">
+                AND m.name LIKE CONCAT('%', #{dto.name}, '%')
+            </if>
+            <if test="dto.school != null and dto.school != ''">
+                AND m.school LIKE CONCAT('%', #{dto.school}, '%')
+            </if>
+            <if test="dto.major != null and dto.major != ''">
+                AND m.major LIKE CONCAT('%', #{dto.major}, '%')
+            </if>
+            <if test="dto.grade != null and dto.grade != ''">
+                AND m.grade = #{dto.grade}
+            </if>
+            <if test="dto.skillIds != null and dto.skillIds.size() > 0">
+                AND ms.skill_id IN
+                <foreach collection="dto.skillIds" item="skillId"
+                         open="(" separator="," close=")">
+                    #{skillId}
+                </foreach>
+            </if>
+            <if test="dto.projectId != null">
+                AND mp.project_id = #{dto.projectId}
+            </if>
+        </where>
+        <if test="dto.skillIds != null and dto.skillIds.size() > 0">
+            GROUP BY m.id
+            HAVING COUNT(DISTINCT ms.skill_id) = #{dto.skillCount}
+        </if>
+        ORDER BY m.created_at DESC
+    </select>
+
+    <!-- 新增成员 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO member (name, gender, email, phone, school, major,
+                            grade, bio, avatar_url, status, created_at, updated_at)
+        VALUES (#{name}, #{gender}, #{email}, #{phone}, #{school}, #{major},
+                #{grade}, #{bio}, #{avatarUrl}, 1, NOW(), NOW())
+    </insert>
+
+    <!-- 更新成员（只更新非null字段） -->
+    <update id="update">
+        UPDATE member
+        <set>
+            <if test="name      != null">name       = #{name},</if>
+            <if test="gender    != null">gender     = #{gender},</if>
+            <if test="email     != null">email      = #{email},</if>
+            <if test="phone     != null">phone      = #{phone},</if>
+            <if test="school    != null">school     = #{school},</if>
+            <if test="major     != null">major      = #{major},</if>
+            <if test="grade     != null">grade      = #{grade},</if>
+            <if test="bio       != null">bio        = #{bio},</if>
+            <if test="avatarUrl != null">avatar_url = #{avatarUrl},</if>
+            updated_at = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 软删除（status置0） -->
+    <update id="deleteById">
+        UPDATE member SET status = 0, updated_at = NOW() WHERE id = #{id}
+    </update>
+
+    <!-- 删除技能关联 -->
+    <delete id="deleteSkillsByMemberId">
+        DELETE FROM member_skill WHERE member_id = #{memberId}
+    </delete>
+
+    <!-- 批量插入技能关联 -->
+    <insert id="insertSkills">
+        INSERT INTO member_skill (member_id, skill_id, level) VALUES
+        <foreach collection="skillIds" item="skillId" separator=",">
+            (#{memberId}, #{skillId}, 1)
+        </foreach>
+    </insert>
+
+</mapper>
