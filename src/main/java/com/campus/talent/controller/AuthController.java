@@ -27,8 +27,8 @@ public class AuthController {
         if (user == null) {
             return Result.fail("用户名或密码错误");
         }
-        // 临时明文比对，先跑通登录流程
-        if (!passwordUtil.matches(req.getPassword(), user.getPassword())) {
+        // 明文比对密码
+        if (!req.getPassword().equals(user.getPassword())) {
             return Result.fail("用户名或密码错误");
         }
         String token = jwtUtil.generateToken(user.getUsername());
