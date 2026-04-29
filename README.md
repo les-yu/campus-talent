@@ -75,6 +75,25 @@ const request = axios.create({
 5. Framework 选 **Vite**，Branch 选 **frontend** → Deploy
 6. 部署完成后获得域名：`campus-talent.vercel.app`
 
+## 常用运维命令
+
+# 查看应用日志
+tail -f logs/app.log
+
+# 查看应用进程
+ps -ef | grep talent
+
+# 查看端口占用
+netstat -tlnp | grep 8080
+
+# 查看系统资源
+top
+df -h     # 磁盘使用
+free -m   # 内存使用
+
+# 杀死进程
+kill -15 PID   # 优雅停止
+kill -9 PID    # 强制停止
 ---
 
 ## 部署过程中遇到的问题及解决方案
